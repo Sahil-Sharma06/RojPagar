@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import JobCard from "./components/loginSignup/signup"
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { setupForegroundMessageHandler } from './services/fcm-service'; // Import the FCM service
 
 import Layout from './components/layout.jsx';
 import Home from './components/landingPage/landingHome.jsx';
@@ -11,21 +12,13 @@ import Signup from './components/loginSignup/signup.jsx';
 import ListingHome from './components/listingPage/listingHome.jsx';
 import JobDetails from './components/listingPage/jobDetails.jsx';
 
-
-
-import { createBrowserRouter, generatePath, RouterProvider } from 'react-router-dom'
-import { generateToken } from './notifications/firebase.js';
-import { onMessage } from 'firebase/messaging';
 function App() {
   const [count, setCount] = useState(0)
-  useEffect(()=>{
-    generateToken();
-    onMessage(Messaging, (payload)=>{
-      console.log('====================================');
-      console.log(payload);
-      console.log('====================================');
-    })
-  },[])
+
+  useEffect(() => {
+    // Set up FCM foreground message handler
+    setupForegroundMessageHandler();
+  }, [])
 
   const router = createBrowserRouter([
     {
@@ -46,7 +39,7 @@ function App() {
 
   return (
     <>
-    <RouterProvider router={router} />
+      <RouterProvider router={router} />
     </>
   )
 }

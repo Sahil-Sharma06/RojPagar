@@ -8,11 +8,9 @@ const notificationSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-// Push again
 const userSchema = new mongoose.Schema(
   {
     username: {
-      // Aadhar Number
       type: String,
       required: true,
       unique: true,
@@ -26,64 +24,71 @@ const userSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
+    email: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    phone: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
     password: {
       type: String,
       required: [true, "Password is required"],
     },
     role: {
       type: String,
-      enum: ["worker", "recruiter", "admin"], // ✅ Added admin role
+      enum: ["worker", "recruiter", "admin"],
       required: true,
     },
     profilePicture: {
-      type: String, // ✅ Store URL of the uploaded image
+      type: String,
       default: "https://example.com/default-profile.png",
     },
-    email: {
-      type: String, // ✅ Added email for communication
-      unique: true,
-      sparse: true,
-    },
-    phone: {
-      type: String, // ✅ Added phone number field
-      unique: true,
-      sparse: true,
-    },
     skills: {
-      type: [String], // ✅ Stores worker skills for job matching
+      type: [String],
       default: [],
     },
     experience: [
       {
         company: String,
         jobTitle: String,
-        duration: String, // e.g., "2 years"
+        duration: String,
       },
-    ], // ✅ Added work experience for workers
+    ],
     location: {
-      city: { type: String, required: false },
-      country: { type: String, required: false },
+      city: { type: String },
+      country: { type: String },
     },
     refreshToken: {
       type: String,
     },
-    notifications: [notificationSchema], // Stores notifications for the user
+    fcmToken: {
+      type: String, // Added FCM Token for push notifications
+      default: null,
+    },
+    notifications: [notificationSchema],
   },
   {
     timestamps: true,
   }
 );
 
+// Hash password before saving
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
+// Password validation method
 userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
+// Generate Access Token
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
     {
@@ -99,11 +104,10 @@ userSchema.methods.generateAccessToken = function () {
   );
 };
 
+// Generate Refresh Token
 userSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
-    {
-      _id: this._id,
-    },
+    { _id: this._id },
     process.env.REFRESH_TOKEN_SECRET,
     {
       expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
@@ -111,5 +115,8 @@ userSchema.methods.generateRefreshToken = function () {
   );
 };
 
-export const User = mongoose.model("User", userSchema);
-export const Notification = mongoose.model("Notification", notificationSchema);
+const User = mongoose.model("User", userSchema);
+const Notification = mongoose.model("Notification", notificationSchema);
+
+// Using named exports
+export { User, Notification };

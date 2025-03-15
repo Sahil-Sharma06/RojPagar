@@ -1,5 +1,6 @@
 import { Job } from "../models/Job.js";
 import { User } from "../models/User.js";
+import { sendJobStatusNotification } from "../services/notification-service.js";
 
 /**
  * @desc Create a Job
@@ -59,8 +60,28 @@ export const updateJob = async (req, res) => {
             return res.status(403).json({ message: "Not authorized" });
 
         // Update job fields
+        const previousStatus = job.status;
         Object.assign(job, req.body);
         await job.save();
+
+        // If job status was updated, send notification to applicants
+        if (req.body.status && previousStatus !== req.body.status) {
+            // Find all users who applied to this job
+            const applicants = await User.find({ 
+                _id: { $in: job.applicants || [] },
+                fcmToken: { $exists: true, $ne: null }
+            });
+            
+            // Send notification to each applicant
+            for (const applicant of applicants) {
+                await sendJobStatusNotification(
+                    applicant._id,
+                    job._id,
+                    job.status,
+                    job.title
+                );
+            }
+        }
 
         res.json({ message: "Job updated successfully", job });
     } catch (error) {
