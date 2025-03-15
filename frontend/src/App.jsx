@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
-import './App.css'
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { useEffect, useState } from 'react';
+import './App.css';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { setupForegroundMessageHandler } from './services/fcm-service'; // Import the FCM service
 
 import Layout from './components/layout.jsx';
@@ -12,13 +12,25 @@ import Signup from './components/loginSignup/signup.jsx';
 import ListingHome from './components/listingPage/listingHome.jsx';
 import JobDetails from './components/listingPage/jobDetails.jsx';
 
+// screens & layouts
+import WorkerLayout from './layouts/WorkerLayout.jsx';
+
+import { generateToken } from './notifications/firebase.js';
+import { onMessage } from 'firebase/messaging';
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [count, setCount] = useState(0);
 
   useEffect(() => {
     // Set up FCM foreground message handler
     setupForegroundMessageHandler();
-  }, [])
+
+    // Firebase messaging setup
+    generateToken();
+    onMessage((payload) => {
+      console.log('Received foreground notification:', payload);
+    });
+  }, []);
 
   const router = createBrowserRouter([
     {
@@ -27,21 +39,22 @@ function App() {
       children: [
         { index: true, element: <Home /> },
         { path: "aboutus", element: <AboutUs /> },
-        { path: "contacts", element: <Contacts /> }
-      ]
+        { path: "contacts", element: <Contacts /> },
+      ],
     },
     { path: "login", element: <LoginPage /> },
     { path: "signup", element: <Signup /> },
-    { path: "contacts", element: <Contacts /> },
-    { path: "listinghome", element: <ListingHome /> },
-    { path: "jobdetails", element: <JobDetails /> }
+    { 
+      path: "worker-home", 
+      element: <WorkerLayout />, 
+      children: [
+        { index: true, element: <ListingHome /> },
+      ],
+    },
+    { path: "jobdetails", element: <JobDetails /> },
   ]);
 
-  return (
-    <>
-      <RouterProvider router={router} />
-    </>
-  )
+  return <RouterProvider router={router} />;
 }
 
-export default App
+export default App;
